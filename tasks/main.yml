@@ -1,0 +1,119 @@
+---
+- name: Install wireguard
+  become: yes
+  apt:
+    update_cache: yes
+    pkg:
+      - wireguard
+    state: present
+
+- name: Check if there is no private key
+  become: yes
+  stat:
+    path: /etc/wireguard/client_private.key
+  register: stat_result
+
+- name: Generate Private-Key
+  become: yes
+  shell: 'wg genkey | tee /etc/wireguard/client_private.key'
+  when: stat_result.stat.exists == False
+  check_mode: no
+
+- name: Generate Public-Key
+  become: yes
+  shell: 'wg pubkey < /etc/wireguard/client_private.key | tee /etc/wireguard/client_public.key'
+  check_mode: no
+
+- name: Set permissions for thekeys
+  become: yes
+  ansible.builtin.file:
+    path: '{{ item }}'
+    owner: root
+    group: root
+    mode: '0600'
+  with_items:
+    - '/etc/wireguard/client_private.key'
+    - '/etc/wireguard/client_public.key'
+ 
+- name: Set IPv6 for VPN-Endpoint
+  become: yes
+  shell: 'cat /etc/wireguard/client_public.key | md5sum | sed "s/^\(..\)\(..\)\(..\)\(..\)\(..\).*$/fe80::02\1:\2ff:fe\3:\4\5/" > /etc/wireguard/link-local'
+  check_mode: no
+ 
+- name: Put Publish-Key-Script to its target location
+  become: yes
+  template:
+    src: 'templates/wg-publish-key.sh.j2'
+    dest: '/etc/wireguard/publish-key.sh'
+    owner: 'root'
+    group: 'root'
+    mode: 'u=rwx,g=rwx,o='
+
+- name: Execute that script
+  become: yes
+  shell: '/etc/wireguard/publish-key.sh'
+  check_mode: no
+
+- name: Put Broker-Service to its locations
+  become: yes
+  template:
+    src: 'templates/broker.service.j2'
+    dest: '/etc/systemd/system/broker.service'
+    owner: 'root'
+    group: 'root'
+    mode: '0777'
+
+- name: Daemon-Reload, Enable and Start for our Broker
+  become: yes
+  ansible.builtin.systemd:
+    name: broker.service
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Slurp Private-Key
+  become: yes
+  slurp:
+    src: "/etc/wireguard/client_private.key"
+  register: slurp_privkey
+
+- name: Slurp Public-Key
+  become: yes
+  slurp:
+    src: "/etc/wireguard/client_public.key"
+  register: slurp_pubkey
+
+- name: Slurp link-local
+  become: yes
+  slurp:
+    src: "/etc/wireguard/link-local"
+  register: slurp_wglinklocal
+
+- name: Put Wireguard-Config-File to its location
+  become: yes
+  template:
+    src: 'templates/wg-welt.conf.j2'
+    dest: '/etc/wireguard/wg-welt.conf'
+    owner: 'root'
+    group: 'root'
+    mode: 'u=rw,g=r,o='
+
+- name: Startup via systemctl
+  ansible.builtin.systemd:
+    state: started
+    name: wg-quick@wg-welt
+
+- name: Put checkup to its target location
+  become: yes
+  template:
+    src: 'templates/checkup.j2'
+    dest: '/usr/local/bin/checkup'
+    owner: 'root'
+    group: 'root'
+    mode: 'u=rwx,g=rwx,o=x'
+
+- name: Make a Cronjob for the checkup"
+  become: yes
+  ansible.builtin.cron:
+    name: "Wireguard Checkup"
+    job: "/usr/local/bin/checkup 2>&1 /dev/null"

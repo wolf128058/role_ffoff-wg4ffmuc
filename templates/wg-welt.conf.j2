@@ -1,0 +1,9 @@
+[Interface]
+PrivateKey = {{ slurp_privkey.content | b64decode | trim }}
+Address = {{ slurp_wglinklocal.content | b64decode | trim }}
+ 
+[Peer]
+PublicKey = TszFS3oFRdhsJP3K0VOlklGMGYZy+oFCtlaghXJqW2g= 
+AllowedIPs = fe80::27c:16ff:fec0:6c74
+Endpoint = gw04.ext.ffmuc.net:40011
+PersistentKeepalive = 2

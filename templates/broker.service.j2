@@ -1,0 +1,13 @@
+[Unit]
+# see man systemd.unit
+Description=Inform tunnel about our wireguard-public key
+Before=wg-quick.target
+ 
+[Service]
+# see man systemd.service, systemd.exec
+ExecStart=/etc/wireguard/publish-key.sh
+StandardOutput=syslog
+StandardError=syslog
+ 
+[Install]
+WantedBy=default.target
