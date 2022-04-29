@@ -1,3 +1,3 @@
 #!/bin/bash
 PUBKEY=$(cat /etc/wireguard/client_public.key )
-wget -q -O- --post-data='{"domain": "ffmuc_welt","public_key": "'$PUBKEY'"}' http://broker.ffmuc.net/api/v1/wg/key/exchange
+wget -q -O- --post-data='{"domain": "{{ wg_domain }}","public_key": "'$PUBKEY'"}' http://broker.ffmuc.net/api/v1/wg/key/exchange

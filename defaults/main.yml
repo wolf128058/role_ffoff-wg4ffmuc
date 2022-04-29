@@ -1,0 +1,6 @@
+---
+wg_domain: "ffmuc_welt"
+wg_endpoint_host: "gw04.ext.ffmuc.net"
+wg_endpoint_port: "40011"
+wg_endpoint_link: "fe80::27c:16ff:fec0:6c74"
+wg_endpoint_pubkey: "TszFS3oFRdhsJP3K0VOlklGMGYZy+oFCtlaghXJqW2g="
